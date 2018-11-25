@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>indexedDB</title>
+</head>
+<body>
+
+</body>
+<script>
+    /**
+     * IndexedDB 鼓励使用的基本模式如下所示：
+     * 打开数据库并且开始一个事务。
+     * 创建一个 object store。
+     * 构建一个请求来执行一些数据库操作，像增加或提取数据等。
+     * 通过监听正确类型的 DOM 事件以等待操作完成。
+     * 在操作结果上进行一些操作（可以在 request 对象中找到）
+     *
+     * */
+
+
+    /**
+     * 1. 打开数据库
+     *  判断浏览器是否支持indexedDB
+     *  创建请求打开indexedDB：一旦你的浏览器支持IndexedDB，我们就可以打开它。你不能直接打开IndexedDB数据库。IndexedDB需要你创建一个请求来打开它。
+     *  @param name 数据库的名称
+     *  @maram version 数据库的版本 版本号可以在升级数据库时用来调整数据库结构和数据
+     * */
+
+    var indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB || window.msIndexedDB;
+    if(!indexedDB) {
+        console.log("你的浏览器不支持IndexedDB");
+    }
+
+    /**
+     *  indexedDB是异步API，所谓异步API是指 并不是这条指令执行完毕
+     * 我们就可以使用request.result来获取indexedDB对象了，就像使用ajax一样，语句执行完并不代表已经获取到了对象，所以我们一般在其回调函数中处理。
+     * */
+
+    /**
+     * 2. 创建数据库
+     * 除了result，IDBOpenDBRequest接口定义了几个重要属性
+     * onerror: 请求失败的回调函数句柄
+     * onsuccess:请求成功的回调函数句柄
+     * onupgradeneeded:请求数据库版本变化句柄
+     */
+
+
+    function openDB(name,version) {
+        var request=window.indexedDB.open(name,version);
+        request.onerror = function(e) {
+            console.log(e.currentTarget.error.message);
+        };
+
+        request.onsuccess = function(e) {
+            myDB.db = e.target.result;
+            console.log('成功打开DB');
+        };
+
+        request.onupgradeneeded = function(e) {
+            var db = e.target.result;
+            if (!db.objectStoreNames.contains('person')) {
+                console.log("我需要创建一个新的存储对象");
+                //如果表格不存在，创建一个新的表格（keyPath，主键 ； autoIncrement,是否自增），会返回一个对象（objectStore）
+                var objectStore = db.createObjectStore('person', {
+                    keyPath: "id",
+                    autoIncrement: true
+                });
+                //指定可以被索引的字段，unique字段是否唯一
+
+                objectStore.createIndex("name", "name", {
+                    unique: false
+                });
+
+                objectStore.createIndex("phone", "phone", {
+                    unique: false
+                });
+
+            }
+            console.log('数据库版本更改为： ' + version);
+
+            /**
+             * 3.添加数据
+             *
+             * 首先需要创建一个事务，并要求具有读写权限
+             * 获取objectStore，再调用add方法添加数据
+             */
+
+            function add() {
+                var request = db.transaction(['person'], 'readwrite')
+                    .objectStore('person')
+                    .add({ id: 1, name: '张三', age: 24, email: 'zhangsan@example.com' });
+
+                request.onsuccess = function (event) {
+                    console.log('数据写入成功');
+                };
+
+                request.onerror = function (event) {
+                    console.log('数据写入失败');
+                }
+            }
+
+            add();
+
+        };
+
+
+    }
+
+    var myDB = {
+        name: 'indexedDB',
+        version: 1,
+        db: null
+    };
+    openDB(myDB.name)
+
+
+
+    /**
+     * 4.删除数据
+     * 删除跟新增一样，需要创建事务，然后调用删除接口，通过key删除对象。
+     *
+     * */
+
+
+
+
+
+
+
+
+</script>
+</html>
